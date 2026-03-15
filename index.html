@@ -68,7 +68,7 @@ canvas#gameCanvas{display:block;}
 </style>
 </head>
 <body>
-<div id="dbg" style="position:fixed;top:0;left:0;z-index:9999;background:rgba(0,0,0,0.8);color:lime;font-size:13px;padding:8px;pointer-events:none;max-width:100vw;word-break:break-all;"></div>
+
 
 <div id="speedLines"></div>
 <div id="vignette"></div>
@@ -112,15 +112,9 @@ canvas#gameCanvas{display:block;}
 <script>
 (function(){
 
-function dbg(msg) {
-  const el = document.getElementById('dbg');
-  if (el) el.innerHTML += msg + '<br>';
-  console.log('[DBG] ' + msg);
-}
 
 // ==================== PLATFORM DETECTION ====================
 const isMobile = window.innerWidth < 1024 || ('ontouchstart' in window);
-dbg('isMobile=' + isMobile + ' width=' + window.innerWidth + ' touch=' + ('ontouchstart' in window));
 
 // ==================== GLOBALS ====================
 const ROAD_LENGTH = 3000;
@@ -1088,8 +1082,7 @@ function spawnConfetti() {
 // ==================== GAME STATES ====================
 function startGame() {
   try {
-    dbg('startGame called, gameStarted=' + gameStarted + ', gameState=' + gameState);
-    if (gameStarted) { dbg('BLOCKED by gameStarted guard'); return; }
+    if (gameStarted) { return; }
     gameStarted = true;
     document.getElementById('startScreen').style.display = 'none';
     document.getElementById('countdown').style.display = 'flex';
@@ -1115,11 +1108,8 @@ function startGame() {
       );
       ai.laneChangeTimer = Math.random() * 300;
     });
-
-    dbg('startGame setup done, calling doCountdown');
     doCountdown();
   } catch(e) {
-    dbg('startGame ERROR: ' + e.message);
   }
 }
 
@@ -1132,14 +1122,12 @@ function triggerCountAnim(el, text, color) {
 }
 
 function doCountdown() {
-  dbg('countdown started');
   let cdEl = document.getElementById('countdownText');
   let count = 3;
   cdEl = triggerCountAnim(cdEl, count.toString(), '#fff');
 
   const interval = setInterval(() => {
     count--;
-    dbg('countdown tick: ' + count);
     if (count > 0) {
       cdEl = triggerCountAnim(cdEl, count.toString(), '#fff');
     } else if (count === 0) {
@@ -1151,7 +1139,6 @@ function doCountdown() {
       gameState = 'racing';
       raceStartTime = Date.now();
       boostTimer = BOOST_DURATION;
-      dbg('RACING!');
     }
   }, 1000);
 }
@@ -1171,7 +1158,6 @@ function finishRace() {
 }
 
 function restartGame() {
-  dbg('restartGame called');
   gameStarted = false;
   document.getElementById('finishScreen').style.display = 'none';
   startGame();
@@ -1392,15 +1378,14 @@ function update(dt) {
     }
   });
 
-  // === CAMERA ===
-  const camLerp = 0.04;
-  const camTargetX = playerGroup.position.x - steering * 2.5;
-  const camTargetZ = playerZ + 6 + speed * 1.5;
-  const camTargetY = 1.8 + speed * 0.08;
+  // === CAMERA — player stays fixed on screen, world moves around ===
+  const camOffsetY = 2.2 + speedFactor * 0.6;
+  const camOffsetZ = 5.5;
+  const camOffsetX = steering * 1.2;
 
-  camera.position.x += (camTargetX - camera.position.x) * camLerp;
-  camera.position.z += (camTargetZ - camera.position.z) * camLerp;
-  camera.position.y += (camTargetY - camera.position.y) * camLerp;
+  camera.position.x = playerGroup.position.x + camOffsetX;
+  camera.position.z = playerGroup.position.z + camOffsetZ;
+  camera.position.y = playerGroup.position.y + camOffsetY;
 
   if (cameraShake > 0) {
     camera.position.x += (Math.random() - 0.5) * cameraShake;
@@ -1409,12 +1394,11 @@ function update(dt) {
     if (cameraShake < 0.01) cameraShake = 0;
   }
 
-  // At high speed, look further ahead
-  const lookAheadDist = 5 + speedFactor * 8;
+  // Always look at fixed point just ahead of player
   const lookTarget = new THREE.Vector3(
     playerGroup.position.x,
-    playerGroup.position.y + 1.2,
-    playerGroup.position.z - lookAheadDist
+    playerGroup.position.y + 1.0,
+    playerGroup.position.z - 6
   );
   camera.lookAt(lookTarget);
 
@@ -1455,17 +1439,16 @@ function animate() {
 
 // ==================== INIT ====================
 function init() {
-  dbg('init started');
-  initScene(); dbg('scene ok');
-  createSky(); dbg('sky ok');
-  createHighway(); dbg('highway ok');
-  createPlayerKart(); dbg('kart ok');
-  createExhaustParticles(); dbg('exhaust ok');
-  createDriftSmoke(); dbg('smoke ok');
-  createTireMarkPool(); dbg('tiremarks ok');
-  spawnAICars(); dbg('ai ok');
-  createSpeedLines(); dbg('speedlines ok');
-  setupControls(); dbg('controls ok');
+  initScene();;
+  createSky();;
+  createHighway();;
+  createPlayerKart();;
+  createExhaustParticles();;
+  createDriftSmoke();;
+  createTireMarkPool();;
+  spawnAICars();;
+  createSpeedLines();;
+  setupControls();;
 
   if (bestTime) document.getElementById('bestTime').textContent = 'Best: ' + formatTime(bestTime);
 
@@ -1475,13 +1458,11 @@ function init() {
   document.getElementById('startBtn').addEventListener('touchstart', e => { e.preventDefault(); startGame(); });
   document.getElementById('restartBtn').addEventListener('click', restartGame);
   document.getElementById('restartBtn').addEventListener('touchstart', e => { e.preventDefault(); restartGame(); });
-  dbg('listeners bound (click+touch on both)');
 
   animate();
-  dbg('animate loop running');
 }
 
-try { init(); } catch(e) { dbg('INIT ERROR: ' + e.message + ' @ ' + e.stack); }
+init();
 
 })();
 </script>
