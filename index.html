@@ -170,6 +170,10 @@ let driftTimer = 0;
 let boostTimer = 0;
 let raceStartTime = 0;
 
+// Player kart parts (avoid assigning custom props to THREE.Group on Safari)
+let playerWheels = [];
+let playerFlames = [];
+
 // Particle pools
 let exhaustParticles = [];
 let driftSmokeParticles = [];
@@ -547,7 +551,7 @@ function createPlayerKart() {
   const wheelMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8 });
   const wheelRimMat = new THREE.MeshStandardMaterial({ color: 0xdddddd, metalness: 0.8, roughness: 0.2 });
   const wheelPositions = [[-1.1, 0.3, -0.8],[1.1, 0.3, -0.8],[-1.1, 0.3, 0.9],[1.1, 0.3, 0.9]];
-  playerGroup.wheels = [];
+  playerWheels = [];
   wheelPositions.forEach(wp => {
     const wGroup = new THREE.Group();
     const tire = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.15, 8, 16), wheelMat);
@@ -558,12 +562,12 @@ function createPlayerKart() {
     wGroup.add(rim);
     wGroup.position.set(wp[0], wp[1], wp[2]);
     playerGroup.add(wGroup);
-    playerGroup.wheels.push(wGroup);
+    playerWheels.push(wGroup);
   });
 
   // Exhaust pipes
   const exhaustMat = new THREE.MeshStandardMaterial({ color: 0x444444, metalness: 0.9, roughness: 0.2 });
-  playerGroup.exhaustFlames = [];
+  playerFlames = [];
   for (let ex = -1; ex <= 1; ex += 2) {
     const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 0.5, 8), exhaustMat);
     pipe.rotation.x = Math.PI / 2;
@@ -576,7 +580,7 @@ function createPlayerKart() {
     flame.position.set(ex * 0.5, 0.35, 1.9);
     flame.visible = false;
     playerGroup.add(flame);
-    playerGroup.exhaustFlames.push(flame);
+    playerFlames.push(flame);
   }
 
   // === CHARACTER ===
@@ -593,13 +597,23 @@ function createPlayerKart() {
   const eyeIrisMat = new THREE.MeshBasicMaterial({ color: 0x6b8e23 });
   const eyePupilMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
   for (let ey = -1; ey <= 1; ey += 2) {
-    playerGroup.add(Object.assign(new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), eyeWhiteMat), { position: new THREE.Vector3(ey * 0.12, 1.55, -0.2) }));
-    playerGroup.add(Object.assign(new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 8), eyeIrisMat), { position: new THREE.Vector3(ey * 0.12, 1.55, -0.27) }));
-    playerGroup.add(Object.assign(new THREE.Mesh(new THREE.SphereGeometry(0.025, 6, 6), eyePupilMat), { position: new THREE.Vector3(ey * 0.12, 1.55, -0.3) }));
+    const ew = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), eyeWhiteMat);
+    ew.position.set(ey * 0.12, 1.55, -0.2);
+    playerGroup.add(ew);
+    const ei = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 8), eyeIrisMat);
+    ei.position.set(ey * 0.12, 1.55, -0.27);
+    playerGroup.add(ei);
+    const ep = new THREE.Mesh(new THREE.SphereGeometry(0.025, 6, 6), eyePupilMat);
+    ep.position.set(ey * 0.12, 1.55, -0.3);
+    playerGroup.add(ep);
   }
 
-  playerGroup.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.03, 0.02), new THREE.MeshBasicMaterial({ color: 0xff6677 })), { position: new THREE.Vector3(0, 1.4, -0.33) }));
-  playerGroup.add(Object.assign(new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), skinMat), { position: new THREE.Vector3(0, 1.48, -0.33) }));
+  const mouthMesh = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.03, 0.02), new THREE.MeshBasicMaterial({ color: 0xff6677 }));
+  mouthMesh.position.set(0, 1.4, -0.33);
+  playerGroup.add(mouthMesh);
+  const noseMesh = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), skinMat);
+  noseMesh.position.set(0, 1.48, -0.33);
+  playerGroup.add(noseMesh);
 
   const hairTop = new THREE.Mesh(new THREE.SphereGeometry(0.38, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.55), hairMat);
   hairTop.position.set(0, 1.55, 0.12);
@@ -1271,14 +1285,14 @@ function update(dt) {
   playerGroup.rotation.z = -steering * 0.05 * driftRotMul;
 
   // Wheel spin
-  if (playerGroup.wheels) {
-    playerGroup.wheels.forEach(w => { w.rotation.x += speed * 0.5; });
+  if (playerWheels.length) {
+    playerWheels.forEach(w => { w.rotation.x += speed * 0.5; });
   }
 
   // Exhaust flames + particles
-  if (playerGroup.exhaustFlames) {
+  if (playerFlames.length) {
     const showFlame = accelInput > 0 && speed > 0.5;
-    playerGroup.exhaustFlames.forEach(f => {
+    playerFlames.forEach(f => {
       f.visible = showFlame;
       if (showFlame) f.scale.set(0.8 + Math.random() * 0.4, 0.8 + Math.random() * 0.4, 0.6 + Math.random() * 0.8);
     });
