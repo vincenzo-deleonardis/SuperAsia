@@ -156,6 +156,7 @@ let touchGas = false;
 let touchBrake = false;
 let joystickX = 0;
 let cameraShake = 0;
+let gameStarted = false;
 let isDrifting = false;
 let driftTimer = 0;
 let boostTimer = 0;
@@ -205,6 +206,11 @@ function initScene() {
   renderer.toneMappingExposure = 1.2;
   renderer.outputEncoding = THREE.sRGBEncoding;
   renderer.domElement.id = 'gameCanvas';
+  renderer.domElement.style.touchAction = 'none';
+  renderer.domElement.style.position = 'fixed';
+  renderer.domElement.style.top = '0';
+  renderer.domElement.style.left = '0';
+  renderer.domElement.style.zIndex = '1';
   document.body.insertBefore(renderer.domElement, document.body.firstChild);
 
   camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.5, 2000);
@@ -1059,6 +1065,8 @@ function spawnConfetti() {
 
 // ==================== GAME STATES ====================
 function startGame() {
+  if (gameStarted) return;
+  gameStarted = true;
   document.getElementById('startScreen').style.display = 'none';
   document.getElementById('countdown').style.display = 'flex';
   document.getElementById('hud').style.display = 'block';
@@ -1088,23 +1096,25 @@ function startGame() {
   doCountdown();
 }
 
+function triggerCountAnim(el, text, color) {
+  el.textContent = text;
+  if (color) el.style.color = color;
+  const clone = el.cloneNode(true);
+  el.parentNode.replaceChild(clone, el);
+  return clone;
+}
+
 function doCountdown() {
-  const cdEl = document.getElementById('countdownText');
+  let cdEl = document.getElementById('countdownText');
   let count = 3;
-  cdEl.textContent = count;
-  cdEl.style.color = '#fff';
+  cdEl = triggerCountAnim(cdEl, count.toString(), '#fff');
 
   const interval = setInterval(() => {
     count--;
     if (count > 0) {
-      cdEl.textContent = count;
-      cdEl.style.animation = 'none'; void cdEl.offsetWidth;
-      cdEl.style.animation = 'countPop .4s ease-out';
+      cdEl = triggerCountAnim(cdEl, count.toString(), '#fff');
     } else if (count === 0) {
-      cdEl.textContent = 'GO!';
-      cdEl.style.color = '#ff69b4';
-      cdEl.style.animation = 'none'; void cdEl.offsetWidth;
-      cdEl.style.animation = 'countPop .4s ease-out';
+      cdEl = triggerCountAnim(cdEl, 'GO!', '#ff69b4');
     } else {
       clearInterval(interval);
       document.getElementById('countdown').style.display = 'none';
@@ -1131,6 +1141,7 @@ function finishRace() {
 }
 
 function restartGame() {
+  gameStarted = false;
   document.getElementById('finishScreen').style.display = 'none';
   startGame();
 }
@@ -1426,10 +1437,13 @@ function init() {
 
   if (bestTime) document.getElementById('bestTime').textContent = 'Best: ' + formatTime(bestTime);
 
-  document.getElementById('startBtn').addEventListener('click', startGame);
-  document.getElementById('startBtn').addEventListener('touchstart', e => { e.preventDefault(); startGame(); });
-  document.getElementById('restartBtn').addEventListener('click', restartGame);
-  document.getElementById('restartBtn').addEventListener('touchstart', e => { e.preventDefault(); restartGame(); });
+  if (isMobile) {
+    document.getElementById('startBtn').addEventListener('touchstart', e => { e.preventDefault(); startGame(); });
+    document.getElementById('restartBtn').addEventListener('touchstart', e => { e.preventDefault(); restartGame(); });
+  } else {
+    document.getElementById('startBtn').addEventListener('click', startGame);
+    document.getElementById('restartBtn').addEventListener('click', restartGame);
+  }
 
   animate();
 }
